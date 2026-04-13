@@ -8,13 +8,8 @@ import { getAuthenticatedUser } from '@/lib/auth-utils';
 
 export async function getConnectedPages() {
   try {
-    const clerkUser = await getAuthenticatedUser();
-    if (!clerkUser) return { success: false, error: 'NODE_AUTH_REQUIRED' };
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId: clerkUser.id }
-    });
-
+    const user = await getAuthenticatedUser();
+    
     if (!user || !user.facebookToken) {
       return { success: false, error: 'META_AUTH_REQUIRED' };
     }
@@ -34,11 +29,11 @@ export async function getConnectedPages() {
 
 export async function savePageSelection(pageId: string, pageAccessToken: string) {
   try {
-    const clerkUser = await getAuthenticatedUser();
-    if (!clerkUser) return { success: false, error: 'NODE_AUTH_REQUIRED' };
+    const user = await getAuthenticatedUser();
+    if (!user) return { success: false, error: 'NODE_AUTH_REQUIRED' };
 
     await prisma.user.update({
-      where: { clerkId: clerkUser.id },
+      where: { id: user.id },
       data: {
         pageId,
         pageAccessToken

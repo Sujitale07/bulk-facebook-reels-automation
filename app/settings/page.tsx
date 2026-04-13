@@ -17,10 +17,15 @@ export default function SettingsPage() {
 
   const fetchPages = async () => {
     setLoading(true);
+    setStatusMsg('');
     const result = await getConnectedPages();
     if (result.success) {
       setPages(result.data);
-      // Pre-select if one is configured in real life via another API, but for now just leave empty to force selection
+    } else {
+      console.error('Fetch error:', result.error);
+      if (result.error !== 'META_AUTH_REQUIRED') {
+        setStatusMsg('ERR_FETCH: ' + result.error);
+      }
     }
     setLoading(false);
   };
