@@ -8,13 +8,17 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return new NextResponse("Unauthorized", { status: 401 });
+
+    // Find internal user id
+    const user = await prisma.user.findUnique({ where: { clerkId } });
+    if (!user) return new NextResponse("User not found", { status: 404 });
 
     const { id } = await params;
     
     const video = await prisma.video.findUnique({
-      where: { id: id, userId } 
+      where: { id: id, userId: user.id } 
     });
 
     if (!video) {
@@ -22,6 +26,13 @@ export async function GET(
     }
 
     const path = video.path;
+
+    // Handle Cloudinary URLs (starting with http)
+    if (path.startsWith('http')) {
+      return NextResponse.redirect(path, { status: 307 });
+    }
+
+    // Fallback for local filesystem (local development)
     const stats = statSync(path);
     const range = req.headers.get('range');
 
@@ -51,6 +62,7 @@ export async function GET(
       });
     }
   } catch (error) {
+    console.error('Streaming error:', error);
     return NextResponse.json({ error: 'Failed to stream video' }, { status: 500 });
   }
 }

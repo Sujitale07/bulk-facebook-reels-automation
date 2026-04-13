@@ -62,6 +62,7 @@ export function JobTracker({ userId }: { userId: string }) {
   };
 
   const deleteJob = async (jobId: string) => {
+    if (!window.confirm('TERMINATE_BACKGROUND_TASK? THIS_ACTION_IS_IRREVERSIBLE.')) return;
     try {
       await axios.delete(`/api/jobs?jobId=${jobId}`);
       setJobs(prev => prev.filter(j => j.id !== jobId));
@@ -80,6 +81,8 @@ export function JobTracker({ userId }: { userId: string }) {
   };
 
   const deployNow = async (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!window.confirm(`FORCE_IMMEDIATE_EXECUTION_FOR_ASSET: ${job?.video.filename}?\nPREVIOUS_SCHEDULE_WINDOW_WILL_BE_SUPERSEDED.`)) return;
     try {
       await axios.post('/api/jobs/deploy-now', { jobId });
       fetchJobs(); // Refresh

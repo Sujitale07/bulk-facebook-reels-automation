@@ -38,6 +38,11 @@ export function UploadForm({ userId }: { userId: string }) {
   }, [files]);
 
   const removeFile = (id: string) => {
+    const file = files.find(f => f.id === id);
+    if (file && file.status === 'success') {
+      if (!window.confirm('ASSET_ALREADY_INGESTED. REMOVE_FROM_STAGING_VIEW?')) return;
+    }
+
     setFiles(prev => {
       const filtered = prev.filter(f => f.id !== id);
       const removed = prev.find(f => f.id === id);
@@ -139,7 +144,11 @@ export function UploadForm({ userId }: { userId: string }) {
             </div>
             <div className="flex gap-2">
                 <button 
-                  onClick={() => setFiles([])}
+                  onClick={() => {
+                    if (files.length > 0 && window.confirm('PURGE_STAGING_BUFFER? ALL_UNCOMMITTED_DATA_WILL_BE_LOST.')) {
+                      setFiles([]);
+                    }
+                  }}
                   className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-muted hover:text-red-500 transition-none"
                 >
                   CLEAR_BUFFER

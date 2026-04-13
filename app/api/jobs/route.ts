@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthenticatedUser } from '@/lib/auth-utils';
 
 export async function GET(req: Request) {
-  const { userId } = await auth();
+  const user = await getAuthenticatedUser();
 
-  if (!userId) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const jobs = await prisma.postJob.findMany({
     where: {
       schedule: {
-        userId: userId
+        userId: user.id
       }
     },
     include: {
@@ -29,8 +29,8 @@ export async function GET(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await getAuthenticatedUser();
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -45,7 +45,7 @@ export async function DELETE(req: Request) {
     const job = await prisma.postJob.findFirst({
       where: { 
         id: jobId,
-        schedule: { userId }
+        schedule: { userId: user.id }
       }
     });
 

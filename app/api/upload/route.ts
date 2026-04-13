@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthenticatedUser } from '@/lib/auth-utils';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getAuthenticatedUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -21,21 +20,15 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadsDir = join(process.cwd(), 'uploads');
-    // Ensure dir exists
-    await mkdir(uploadsDir, { recursive: true });
-
-    const filename = `${Date.now()}-${file.name.replaceAll(' ', '_')}`;
-    const path = join(uploadsDir, filename);
-
-    await writeFile(path, buffer);
+    // Upload to Cloudinary
+    const { url } = await uploadToCloudinary(buffer, file.name);
 
     const video = await prisma.video.create({
       data: {
         filename: file.name,
-        path: path,
+        path: url,
         size: file.size,
-        userId: userId,
+        userId: user.id,
         status: 'uploaded'
       }
     });
@@ -43,6 +36,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, videoId: video.id });
   } catch (error: any) {
     console.error('Upload API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: `UPLOAD_FAILURE: ${error.message}` }, { status: 500 });
   }
 }

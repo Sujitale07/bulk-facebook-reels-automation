@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { unlink } from 'fs/promises';
-import { auth } from '@clerk/nextjs/server';
+import { getAuthenticatedUser } from '@/lib/auth-utils';
 
 export async function GET(req: Request) {
-  const { userId } = await auth();
+  const user = await getAuthenticatedUser();
 
-  if (!userId) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const videos = await prisma.video.findMany({
-    where: { userId },
+    where: { userId: user.id },
     orderBy: { createdAt: 'desc' },
     include: {
         postJobs: true
@@ -22,8 +22,8 @@ export async function GET(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const user = await getAuthenticatedUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const videoId = searchParams.get('videoId');
@@ -34,7 +34,7 @@ export async function DELETE(req: Request) {
 
   try {
     const video = await prisma.video.findUnique({
-      where: { id: videoId, userId } // Ensure it belongs to the user
+      where: { id: videoId, userId: user.id } // Ensure it belongs to the user
     });
 
     if (video) {

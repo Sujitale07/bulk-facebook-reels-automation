@@ -2,6 +2,10 @@ import { Worker, Job } from 'bullmq';
 import { connection, POST_QUEUE_NAME } from '../lib/queue';
 import { prisma } from '@/lib/prisma';
 import { FacebookReelsService } from '../lib/facebook';
+import axios from 'axios';
+import { writeFile, unlink } from 'fs/promises';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 export function setupPostWorker() {
   const worker = new Worker(
@@ -41,6 +45,8 @@ export function setupPostWorker() {
         throw new Error('Missing Facebook credentials');
       }
 
+      const tempPath = join(tmpdir(), `upload-${Date.now()}-${video.filename}`);
+
       try {
         // 2. Mark job as processing
         await prisma.postJob.update({
@@ -48,16 +54,21 @@ export function setupPostWorker() {
           data: { status: 'processing' }
         });
 
+        // 3. Download from Cloudinary to temp path
+        console.log(`[Worker] Fetching media from Cloudinary: ${video.path}`);
+        const response = await axios.get(video.path, { responseType: 'arraybuffer' });
+        await writeFile(tempPath, Buffer.from(response.data));
+
         const fbService = new FacebookReelsService(user.pageId, user.pageAccessToken);
 
-        // 3. Step 1: Initialize
+        // 4. Step 1: Initialize
         console.log(`[Worker] Initializing upload for job ${postJobId}`);
         const { video_id: fbVideoId, upload_url: fbUploadUrl } = await fbService.initializeUpload();
 
-        // 4. Step 2: Upload
+        // 5. Step 2: Upload
         console.log(`[Worker] Uploading video for job ${postJobId}`);
         let lastProgress = 0;
-        await fbService.uploadVideo(fbUploadUrl, video.path, async (progress) => {
+        await fbService.uploadVideo(fbUploadUrl, tempPath, async (progress) => {
           // Only update DB every 10% to avoid overloading Prisma
           if (progress >= lastProgress + 10 || progress === 100) {
             lastProgress = progress;
@@ -67,6 +78,9 @@ export function setupPostWorker() {
             });
           }
         });
+
+        // Clean up temp file
+        await unlink(tempPath);
 
         // 5. Step 3: Publish
         console.log(`[Worker] Publishing reel for job ${postJobId}`);

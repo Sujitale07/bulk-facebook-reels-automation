@@ -41,6 +41,9 @@ export function ScheduleForm({ videos, userId }: { videos: Video[], userId: stri
     e.preventDefault();
     if (selectedVideos.length === 0) return;
 
+    const confirmed = window.confirm(`CONFIRM_ORCHESTRATION_DEPLOYMENT?\nUNITS: ${selectedVideos.length}\nFREQ: ${videosPerDay} posts/day\nSTART: ${startDate}`);
+    if (!confirmed) return;
+
     setIsSubmitting(true);
     const result = await submitSchedule({
       userId,
