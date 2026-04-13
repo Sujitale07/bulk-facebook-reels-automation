@@ -46,7 +46,6 @@ export function ScheduleForm({ videos, userId }: { videos: Video[], userId: stri
 
     setIsSubmitting(true);
     const result = await submitSchedule({
-      userId,
       videoIds: selectedVideos,
       videosPerDay,
       startDate,
