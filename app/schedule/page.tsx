@@ -23,7 +23,7 @@ export default async function SchedulePage() {
         </div>
       </div>
 
-      <main className="p-8 max-w-4xl">
+      <main className="p-8 max-w-8xl">
         <div className="space-y-12">
           <div className="space-y-2">
             <h2 className="text-[11px] font-bold uppercase tracking-[0.4em] text-white">ORCHESTRATION_LAYER</h2>
