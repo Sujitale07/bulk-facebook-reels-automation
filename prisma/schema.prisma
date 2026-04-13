@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String     @id @default(cuid())
+  clerkId         String     @unique
+  email           String     @unique
+  facebookToken   String?
+  pageId          String?
+  pageAccessToken String?
+  videos          Video[]
+  schedules       Schedule[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Video {
+  id        String    @id @default(cuid())
+  filename  String
+  path      String    @unique
+  size      Int
+  status    String    @default("uploaded") // uploaded, processing, posted, failed
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postJobs  PostJob[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Schedule {
+  id           String    @id @default(cuid())
+  name         String
+  videosPerDay Int
+  repeatDays   Int?
+  startDate    DateTime
+  status       String    @default("active") // active, completed, paused
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postJobs     PostJob[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model PostJob {
+  id             String    @id @default(cuid())
+  scheduledAt    DateTime
+  status         String    @default("pending") // pending, processing, success, failed
+  progress       Int       @default(0)
+  log            String?   @db.Text
+  facebookPostId String?
+  videoId        String
+  video          Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  scheduleId     String
+  schedule       Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([scheduledAt, status])
+}
