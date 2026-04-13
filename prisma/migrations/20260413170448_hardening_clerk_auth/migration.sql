@@ -1,8 +1,8 @@
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
+    "clerkId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
     "facebookToken" TEXT,
     "pageId" TEXT,
     "pageAccessToken" TEXT,
@@ -46,6 +46,7 @@ CREATE TABLE "PostJob" (
     "id" TEXT NOT NULL,
     "scheduledAt" TIMESTAMP(3) NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'pending',
+    "progress" INTEGER NOT NULL DEFAULT 0,
     "log" TEXT,
     "facebookPostId" TEXT,
     "videoId" TEXT NOT NULL,
@@ -55,6 +56,9 @@ CREATE TABLE "PostJob" (
 
     CONSTRAINT "PostJob_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_clerkId_key" ON "User"("clerkId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
